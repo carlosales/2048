@@ -1,17 +1,45 @@
-﻿namespace MauiApp1
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.Maui;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Storage;
+using Microsoft.Maui.Graphics;
+
+namespace MauiApp1
 {
     public partial class MainPage : ContentPage
     {
         private int[,] board = new int[4, 4];
-        private Frame[,] tiles = new Frame[4, 4];
+        private Border[,] tiles = new Border[4, 4];
         private int score = 0;
+        private int bestScore = 0;
         private Random random = new Random();
+        private bool isAnimating = false;
 
         public MainPage()
         {
             InitializeComponent();
+            LoadBestScore();
             InitializeBoard();
             StartNewGame();
+        }
+
+        private void LoadBestScore()
+        {
+            bestScore = Preferences.Get("BestScore", 0);
+            BestScoreLabel.Text = bestScore.ToString();
+        }
+
+        private void SaveBestScore()
+        {
+            if (score > bestScore)
+            {
+                bestScore = score;
+                Preferences.Set("BestScore", bestScore);
+                BestScoreLabel.Text = bestScore.ToString();
+                AnimateScoreUpdate(BestScoreLabel);
+            }
         }
 
         private void InitializeBoard()
@@ -20,11 +48,10 @@
             {
                 for (int col = 0; col < 4; col++)
                 {
-                    var frame = new Frame
+                    var border = new Border
                     {
                         BackgroundColor = Color.FromArgb("#cdc1b4"),
-                        CornerRadius = 5,
-                        HasShadow = false,
+                        StrokeThickness = 0,
                         Padding = 0
                     };
 
@@ -36,11 +63,11 @@
                         FontAttributes = FontAttributes.Bold
                     };
 
-                    frame.Content = label;
-                    Grid.SetRow(frame, row);
-                    Grid.SetColumn(frame, col);
-                    GameBoard.Children.Add(frame);
-                    tiles[row, col] = frame;
+                    border.Content = label;
+                    Grid.SetRow(border, row);
+                    Grid.SetColumn(border, col);
+                    GameBoard.Children.Add(border);
+                    tiles[row, col] = border;
                 }
             }
         }
@@ -63,7 +90,7 @@
             UpdateUI();
         }
 
-        private void AddRandomTile()
+        private async void AddRandomTile()
         {
             var emptyCells = new List<(int row, int col)>();
             
@@ -82,6 +109,11 @@
             {
                 var cell = emptyCells[random.Next(emptyCells.Count)];
                 board[cell.row, cell.col] = random.Next(10) < 9 ? 2 : 4;
+                
+                // Animate new tile
+                var tile = tiles[cell.row, cell.col];
+                tile.Scale = 0;
+                await tile.ScaleToAsync(1, 200, Easing.SpringOut);
             }
         }
 
@@ -92,18 +124,23 @@
                 for (int col = 0; col < 4; col++)
                 {
                     var value = board[row, col];
-                    var label = (Label)tiles[row, col].Content;
-                    
-                    if (value == 0)
+                    var tile = tiles[row, col];
+                    if (tile?.Content is Label label)
                     {
-                        label.Text = "";
-                        tiles[row, col].BackgroundColor = Color.FromArgb("#cdc1b4");
-                    }
-                    else
-                    {
-                        label.Text = value.ToString();
-                        tiles[row, col].BackgroundColor = GetTileColor(value);
-                        label.TextColor = value <= 4 ? Color.FromArgb("#776e65") : Colors.White;
+                        if (value == 0)
+                        {
+                            label.Text = "";
+                            tile.BackgroundColor = Color.FromArgb("#cdc1b4");
+                        }
+                        else
+                        {
+                            label.Text = value.ToString();
+                            tile.BackgroundColor = GetTileColor(value);
+                            label.TextColor = value <= 4 ? Color.FromArgb("#776e65") : Colors.White;
+                            
+                            // Adjust font size for larger numbers
+                            label.FontSize = value >= 1024 ? 24 : (value >= 128 ? 28 : 32);
+                        }
                     }
                 }
             }
@@ -128,8 +165,11 @@
             };
         }
 
-        private void OnSwiped(object? sender, SwipedEventArgs e)
+        private async void OnSwiped(object? sender, SwipedEventArgs e)
         {
+            if (isAnimating) return;
+            
+            isAnimating = true;
             bool moved = false;
 
             switch (e.Direction)
@@ -150,19 +190,33 @@
 
             if (moved)
             {
-                AddRandomTile();
                 UpdateUI();
+                await Task.Delay(100);
+                AddRandomTile();
+                await Task.Delay(200);
+                
                 ScoreLabel.Text = score.ToString();
+                AnimateScoreUpdate(ScoreLabel);
+                SaveBestScore();
 
                 if (CheckWin())
                 {
-                    DisplayAlert("Parabéns!", "Você chegou ao 2048!", "OK");
+                    await DisplayAlertAsync("🎉 Parabéns!", "Você chegou ao 2048!", "Continuar");
                 }
                 else if (CheckGameOver())
                 {
-                    DisplayAlert("Game Over", $"Pontuação final: {score}", "OK");
+                    await DisplayAlertAsync("Game Over", $"Pontuação final: {score}\nMelhor: {bestScore}", "Novo Jogo");
+                    StartNewGame();
                 }
             }
+            
+            isAnimating = false;
+        }
+
+        private async void AnimateScoreUpdate(Label label)
+        {
+            await label.ScaleToAsync(1.2, 100);
+            await label.ScaleToAsync(1, 100);
         }
 
         private bool MoveLeft()

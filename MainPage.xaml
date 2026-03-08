@@ -24,7 +24,7 @@
                    TextColor="#776e65"
                    VerticalOptions="Center"/>
 
-            <VerticalStackLayout Grid.Column="1" Spacing="5">
+            <HorizontalStackLayout Grid.Column="1" Spacing="10">
                 <Frame BackgroundColor="#bbada0" 
                        Padding="15,10"
                        CornerRadius="5"
@@ -42,7 +42,25 @@
                                HorizontalOptions="Center"/>
                     </VerticalStackLayout>
                 </Frame>
-            </VerticalStackLayout>
+                
+                <Frame BackgroundColor="#bbada0" 
+                       Padding="15,10"
+                       CornerRadius="5"
+                       HasShadow="False">
+                    <VerticalStackLayout Spacing="0">
+                        <Label Text="MELHOR" 
+                               FontSize="12" 
+                               TextColor="#eee4da"
+                               HorizontalOptions="Center"/>
+                        <Label x:Name="BestScoreLabel" 
+                               Text="0" 
+                               FontSize="24" 
+                               FontAttributes="Bold"
+                               TextColor="White"
+                               HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Frame>
+            </HorizontalStackLayout>
         </Grid>
 
         <!-- Instructions and New Game Button -->

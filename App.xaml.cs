@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Maui;
+using Microsoft.Maui.Controls;
 
 namespace MauiApp1
 {
@@ -11,7 +12,7 @@ namespace MauiApp1
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            return new Window(new AppShell());
+            return new Window(new MainPage());
         }
     }
 }
